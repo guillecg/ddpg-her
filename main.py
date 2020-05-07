@@ -1,3 +1,5 @@
+import os
+
 import datetime
 from pathlib import Path
 
@@ -9,7 +11,14 @@ from collections import deque
 
 import matplotlib.pyplot as plt
 
+from PIL import Image
+
 import gym
+
+# Needed for rendering in RGB, see:
+# https://github.com/openai/mujoco-py/issues/390
+from mujoco_py import GlfwContext
+GlfwContext(offscreen=True)
 
 from agents.agent_td3 import AgentTD3
 
@@ -61,7 +70,7 @@ if __name__ == '__main__':
     )
 
     # training hyperparameters
-    n_episodes = 100  # maximum number of training episodes
+    n_episodes = 5000  # maximum number of training episodes
     max_t = 1000       # maximum number of timesteps per episode
 
     scores = []                                 # scores for each episode
@@ -149,7 +158,12 @@ if __name__ == '__main__':
 
             break
 
+    agent.actor_local.load_state_dict(torch.load('experiments/05-05-2020_00h07m/weights_actor_episode_3262.pth'))
+    agent.actor_local.eval()
+
     # evaluation loop
+    frames = []
+    n_episodes = 5  # avoid creating a GIF too big
     for i_episode in range(1, n_episodes + 1):
         env_info = env.reset()  # reset the environment
         agent.reset()           # initialize agent
@@ -172,12 +186,22 @@ if __name__ == '__main__':
             )
 
             state = next_state  # roll over states to next time step
-            score += reward      # update the scores
+            score += reward     # update the scores
 
-            env.render()
+            frames.append(Image.fromarray(env.render(mode='rgb_array')))
 
             if done:
                 break
+
+    # close the environment
+    env.close()
+
+    frames[0].save(
+        os.path.join(EXPERIMENT_FOLDER, 'evaluation.gif'),
+        save_all=True,
+        append_images=frames[1:],
+        loop=True
+    )
 
     # plot the scores
     fig = plt.figure()
@@ -192,6 +216,3 @@ if __name__ == '__main__':
     # save figure to file
     print(f'Saving figure into {EXPERIMENT_FOLDER} folder...')
     fig.savefig(f'{EXPERIMENT_FOLDER}/scores.png')
-
-    # close the environment
-    env.close()
