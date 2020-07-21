@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from models.networks import ActorFC, CriticFC
+from models.fc import ActorFC, CriticFC
 from models.utils import HERReplayBuffer, OUNoise
 
 
